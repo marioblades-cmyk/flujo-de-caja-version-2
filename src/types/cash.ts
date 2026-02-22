@@ -18,7 +18,7 @@ export interface Shift {
   id: string;
   fecha: string;
   turno: Turno;
-  responsable: Responsable;
+  responsable: string;
   montoInicial: number;
   montoFinalAnterior: number | null;
   transactions: Transaction[];

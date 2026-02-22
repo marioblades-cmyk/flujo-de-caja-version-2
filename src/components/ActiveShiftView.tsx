@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { TipoMovimiento, Shift, Turno, Responsable } from "@/types/cash";
-import { TURNOS, RESPONSABLES } from "@/types/cash";
+import type { TipoMovimiento, Shift, Turno } from "@/types/cash";
+import { TURNOS } from "@/types/cash";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +30,7 @@ interface Props {
   onClose: () => void;
   onUpdateTransaction: (txId: string, data: { concepto?: string; tipo?: TipoMovimiento; monto?: number }) => Promise<boolean>;
   onDeleteTransaction: (txId: string) => Promise<boolean>;
-  onUpdateShift: (shiftId: string, data: { turno?: string; responsable?: string; monto_inicial?: number }) => Promise<boolean>;
+  onUpdateShift: (shiftId: string, data: { turno?: string; responsable?: string; monto_inicial?: number; hora_apertura?: string; hora_cierre?: string | null }) => Promise<boolean>;
 }
 
 export default function ActiveShiftView({
@@ -125,12 +125,7 @@ export default function ActiveShiftView({
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-muted-foreground uppercase">Responsable</label>
-                <Select value={editResponsable} onValueChange={(v) => setEditResponsable(v as Responsable)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {RESPONSABLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Input value={editResponsable} onChange={(e) => setEditResponsable(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-muted-foreground uppercase">Monto Inicial (Bs)</label>

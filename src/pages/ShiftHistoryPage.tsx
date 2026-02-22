@@ -34,6 +34,7 @@ export default function ShiftHistoryPage() {
     updateTransaction,
     deleteTransaction,
     deleteShift,
+    updateShift,
     getShiftFinalBalance,
     loading,
   } = useCashFlow();
@@ -231,6 +232,7 @@ export default function ShiftHistoryPage() {
             onUpdateTransaction={updateTransaction}
             onDeleteTransaction={deleteTransaction}
             onDeleteShift={deleteShift}
+            onUpdateShift={updateShift}
             getShiftFinalBalance={getShiftFinalBalance}
           />
         )}

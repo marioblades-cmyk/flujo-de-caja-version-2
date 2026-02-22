@@ -1,6 +1,7 @@
 import { useState } from "react";
-import type { Turno, Responsable, Shift } from "@/types/cash";
-import { TURNOS, RESPONSABLES } from "@/types/cash";
+import type { Turno, Shift } from "@/types/cash";
+import { TURNOS } from "@/types/cash";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,12 +16,12 @@ import { DoorOpen, AlertTriangle, CheckCircle } from "lucide-react";
 interface Props {
   lastClosedShift: Shift | null;
   lastFinalBalance: number | null;
-  onOpen: (turno: Turno, responsable: Responsable, montoInicial: number) => void;
+  onOpen: (turno: Turno, responsable: string, montoInicial: number) => void;
 }
 
 export default function OpenCashForm({ lastClosedShift, lastFinalBalance, onOpen }: Props) {
+  const { profile } = useAuth();
   const [turno, setTurno] = useState<Turno | "">("");
-  const [responsable, setResponsable] = useState<Responsable | "">("");
   const [montoInicial, setMontoInicial] = useState("");
 
   const monto = parseFloat(montoInicial) || 0;
@@ -29,13 +30,12 @@ export default function OpenCashForm({ lastClosedShift, lastFinalBalance, onOpen
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!turno || !responsable || !montoInicial) return;
-    onOpen(turno, responsable, monto);
+    if (!turno || !montoInicial || !profile?.nombre) return;
+    onOpen(turno, profile.nombre, monto);
   };
 
   return (
     <div className="max-w-lg mx-auto">
-      {/* Previous shift info */}
       {lastClosedShift && (
         <div className="bg-card rounded-xl p-5 shadow-sm border border-border mb-6">
           <h3 className="text-lg font-display tracking-wider text-muted-foreground mb-3">ÚLTIMO TURNO</h3>
@@ -64,14 +64,15 @@ export default function OpenCashForm({ lastClosedShift, lastFinalBalance, onOpen
         </div>
       )}
 
-      {/* Open form */}
       <form onSubmit={handleSubmit} className="bg-card rounded-xl p-6 shadow-sm border border-border space-y-5">
         <div className="text-center">
           <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
             <DoorOpen className="w-7 h-7 text-primary" />
           </div>
           <h2 className="text-3xl font-display tracking-wider text-foreground">ABRIR CAJA</h2>
-          <p className="text-sm text-muted-foreground mt-1">Selecciona tu turno y confirma el monto en caja</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Abriendo como <strong>{profile?.nombre || "..."}</strong>
+          </p>
         </div>
 
         <div className="space-y-1">
@@ -81,18 +82,6 @@ export default function OpenCashForm({ lastClosedShift, lastFinalBalance, onOpen
             <SelectContent>
               {TURNOS.map((t) => (
                 <SelectItem key={t} value={t}>{t}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Responsable</label>
-          <Select value={responsable} onValueChange={(v) => setResponsable(v as Responsable)}>
-            <SelectTrigger><SelectValue placeholder="¿Quién eres?" /></SelectTrigger>
-            <SelectContent>
-              {RESPONSABLES.map((r) => (
-                <SelectItem key={r} value={r}>{r}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -114,7 +103,6 @@ export default function OpenCashForm({ lastClosedShift, lastFinalBalance, onOpen
           />
         </div>
 
-        {/* Comparison with previous shift */}
         {lastFinalBalance !== null && montoInicial && (
           <div
             className={`rounded-lg p-3 flex items-start gap-3 text-sm ${
@@ -150,7 +138,7 @@ export default function OpenCashForm({ lastClosedShift, lastFinalBalance, onOpen
         <Button
           type="submit"
           className="w-full gap-2 text-base py-5"
-          disabled={!turno || !responsable || !montoInicial}
+          disabled={!turno || !montoInicial}
         >
           <DoorOpen className="w-5 h-5" /> Abrir Caja
         </Button>

@@ -28,6 +28,7 @@ import {
   RotateCcw,
   X,
   Check,
+  Clock,
 } from "lucide-react";
 
 interface Props {
@@ -39,6 +40,7 @@ interface Props {
   onUpdateTransaction: (txId: string, data: { concepto?: string; tipo?: TipoMovimiento; monto?: number }) => Promise<boolean>;
   onDeleteTransaction: (txId: string) => Promise<boolean>;
   onDeleteShift: (shiftId: string) => Promise<boolean>;
+  onUpdateShift: (shiftId: string, data: { turno?: string; responsable?: string; monto_inicial?: number; hora_apertura?: string; hora_cierre?: string | null }) => Promise<boolean>;
   getShiftFinalBalance: (shift: Shift) => number;
 }
 
@@ -51,12 +53,18 @@ export default function ShiftDetailDialog({
   onUpdateTransaction,
   onDeleteTransaction,
   onDeleteShift,
+  onUpdateShift,
   getShiftFinalBalance,
 }: Props) {
   const [editingTx, setEditingTx] = useState<string | null>(null);
   const [editConcepto, setEditConcepto] = useState("");
   const [editMonto, setEditMonto] = useState("");
   const [editTipo, setEditTipo] = useState<TipoMovimiento>("INGRESO");
+
+  // Edit times
+  const [editingTimes, setEditingTimes] = useState(false);
+  const [editHoraApertura, setEditHoraApertura] = useState("");
+  const [editHoraCierre, setEditHoraCierre] = useState("");
 
   const finalBalance = getShiftFinalBalance(shift);
   const totalIn = shift.transactions.filter((t) => t.tipo === "INGRESO").reduce((s, t) => s + t.monto, 0);
@@ -77,6 +85,21 @@ export default function ShiftDetailDialog({
       monto: parseFloat(editMonto),
     });
     setEditingTx(null);
+  };
+
+  const startEditTimes = () => {
+    setEditHoraApertura(shift.horaApertura);
+    setEditHoraCierre(shift.horaCierre || "");
+    setEditingTimes(true);
+  };
+
+  const saveTimes = async () => {
+    const data: any = { hora_apertura: editHoraApertura };
+    if (shift.cerrado) {
+      data.hora_cierre = editHoraCierre || null;
+    }
+    await onUpdateShift(shift.id, data);
+    setEditingTimes(false);
   };
 
   const handleReopen = async () => {
@@ -116,11 +139,32 @@ export default function ShiftDetailDialog({
           </div>
         </div>
 
-        <div className="text-xs text-muted-foreground flex gap-4">
-          <span>Apertura: {shift.horaApertura}</span>
-          {shift.horaCierre && <span>Cierre: {shift.horaCierre}</span>}
-          <span>{shift.cerrado ? "● Cerrado" : "● Abierto"}</span>
-        </div>
+        {/* Times - editable */}
+        {editingTimes ? (
+          <div className="flex items-end gap-3 flex-wrap">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-muted-foreground uppercase">Hora Apertura</label>
+              <Input value={editHoraApertura} onChange={(e) => setEditHoraApertura(e.target.value)} className="w-28" placeholder="HH:MM" />
+            </div>
+            {shift.cerrado && (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground uppercase">Hora Cierre</label>
+                <Input value={editHoraCierre} onChange={(e) => setEditHoraCierre(e.target.value)} className="w-28" placeholder="HH:MM" />
+              </div>
+            )}
+            <Button size="sm" onClick={saveTimes} className="gap-1"><Check className="w-3 h-3" /> Guardar</Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditingTimes(false)} className="gap-1"><X className="w-3 h-3" /> Cancelar</Button>
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground flex gap-4 items-center">
+            <span>Apertura: {shift.horaApertura}</span>
+            {shift.horaCierre && <span>Cierre: {shift.horaCierre}</span>}
+            <span>{shift.cerrado ? "● Cerrado" : "● Abierto"}</span>
+            <Button size="sm" variant="ghost" className="h-6 gap-1 text-xs" onClick={startEditTimes}>
+              <Clock className="w-3 h-3" /> Editar horarios
+            </Button>
+          </div>
+        )}
 
         {/* Transactions */}
         <div className="border border-border rounded-lg overflow-hidden">
@@ -136,53 +180,22 @@ export default function ShiftDetailDialog({
                   {editingTx === tx.id ? (
                     <div className="space-y-2">
                       <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setEditTipo("INGRESO")}
-                          className={`px-3 py-1 rounded text-xs font-semibold border ${
-                            editTipo === "INGRESO"
-                              ? "bg-success text-success-foreground border-success"
-                              : "border-border text-muted-foreground"
-                          }`}
-                        >
+                        <button type="button" onClick={() => setEditTipo("INGRESO")}
+                          className={`px-3 py-1 rounded text-xs font-semibold border ${editTipo === "INGRESO" ? "bg-success text-success-foreground border-success" : "border-border text-muted-foreground"}`}>
                           INGRESO
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditTipo("EGRESO")}
-                          className={`px-3 py-1 rounded text-xs font-semibold border ${
-                            editTipo === "EGRESO"
-                              ? "bg-destructive text-destructive-foreground border-destructive"
-                              : "border-border text-muted-foreground"
-                          }`}
-                        >
+                        <button type="button" onClick={() => setEditTipo("EGRESO")}
+                          className={`px-3 py-1 rounded text-xs font-semibold border ${editTipo === "EGRESO" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border text-muted-foreground"}`}>
                           EGRESO
                         </button>
                       </div>
                       <div className="flex gap-2">
-                        <Input
-                          value={editConcepto}
-                          onChange={(e) => setEditConcepto(e.target.value)}
-                          className="flex-1"
-                          placeholder="Concepto"
-                        />
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          value={editMonto}
-                          onChange={(e) => setEditMonto(e.target.value)}
-                          className="w-28"
-                          placeholder="Monto"
-                        />
+                        <Input value={editConcepto} onChange={(e) => setEditConcepto(e.target.value)} className="flex-1" placeholder="Concepto" />
+                        <Input type="number" step="0.01" min="0.01" value={editMonto} onChange={(e) => setEditMonto(e.target.value)} className="w-28" placeholder="Monto" />
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={saveEdit} className="gap-1">
-                          <Check className="w-3 h-3" /> Guardar
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEditingTx(null)} className="gap-1">
-                          <X className="w-3 h-3" /> Cancelar
-                        </Button>
+                        <Button size="sm" onClick={saveEdit} className="gap-1"><Check className="w-3 h-3" /> Guardar</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingTx(null)} className="gap-1"><X className="w-3 h-3" /> Cancelar</Button>
                       </div>
                     </div>
                   ) : (
@@ -222,9 +235,7 @@ export default function ShiftDetailDialog({
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => onDeleteTransaction(tx.id)}>
-                                    Eliminar
-                                  </AlertDialogAction>
+                                  <AlertDialogAction onClick={() => onDeleteTransaction(tx.id)}>Eliminar</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -239,7 +250,7 @@ export default function ShiftDetailDialog({
           )}
         </div>
 
-        {/* Reopen button */}
+        {/* Reopen & Delete */}
         {shift.cerrado && (
           <div className="flex flex-col gap-2">
             <AlertDialog>
@@ -254,7 +265,6 @@ export default function ShiftDetailDialog({
                   <AlertDialogTitle>¿Reabrir esta caja?</AlertDialogTitle>
                   <AlertDialogDescription>
                     Se reabrirá el turno de {shift.responsable} ({shift.fecha} - {shift.turno}).
-                    Aparecerá como turno activo en la página principal.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -275,17 +285,12 @@ export default function ShiftDetailDialog({
                   <AlertDialogTitle>¿Eliminar este turno?</AlertDialogTitle>
                   <AlertDialogDescription>
                     Se eliminará permanentemente el turno de {shift.responsable} ({shift.fecha} - {shift.turno})
-                    junto con todos sus {shift.transactions.length} movimientos. Esta acción no se puede deshacer.
+                    junto con todos sus {shift.transactions.length} movimientos.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={async () => {
-                      await onDeleteShift(shift.id);
-                      onOpenChange(false);
-                    }}
-                  >
+                  <AlertDialogAction onClick={async () => { await onDeleteShift(shift.id); onOpenChange(false); }}>
                     Sí, eliminar
                   </AlertDialogAction>
                 </AlertDialogFooter>
