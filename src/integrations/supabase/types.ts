@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          nombre: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nombre: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nombre?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       shifts: {
         Row: {
           cerrado: boolean
@@ -26,6 +47,7 @@ export type Database = {
           monto_inicial: number
           responsable: string
           turno: string
+          user_id: string | null
         }
         Insert: {
           cerrado?: boolean
@@ -38,6 +60,7 @@ export type Database = {
           monto_inicial?: number
           responsable: string
           turno: string
+          user_id?: string | null
         }
         Update: {
           cerrado?: boolean
@@ -50,6 +73,7 @@ export type Database = {
           monto_inicial?: number
           responsable?: string
           turno?: string
+          user_id?: string | null
         }
         Relationships: []
       }

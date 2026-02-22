@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Shift, Transaction, Turno, Responsable, TipoMovimiento } from "@/types/cash";
+import type { Shift, Transaction, Turno, TipoMovimiento } from "@/types/cash";
 
 export function useCashFlow() {
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -59,7 +59,7 @@ export function useCashFlow() {
     id: row.id,
     fecha: row.fecha,
     turno: row.turno as Turno,
-    responsable: row.responsable as Responsable,
+    responsable: row.responsable,
     montoInicial: Number(row.monto_inicial),
     montoFinalAnterior: row.monto_final_anterior != null ? Number(row.monto_final_anterior) : null,
     transactions: txRows.map((tx) => ({
@@ -85,13 +85,15 @@ export function useCashFlow() {
   };
 
   const openCash = useCallback(
-    async (turno: Turno, responsable: Responsable, montoInicial: number) => {
+    async (turno: Turno, responsable: string, montoInicial: number) => {
       const montoFinalAnterior = lastClosedShift
         ? getShiftFinalBalance(lastClosedShift)
         : null;
 
       const horaApertura = new Date().toLocaleTimeString("es-BO", { hour: "2-digit", minute: "2-digit" });
       const fecha = new Date().toISOString().slice(0, 10);
+
+      const { data: { user } } = await supabase.auth.getUser();
 
       const { data, error } = await supabase
         .from("shifts")
@@ -103,6 +105,7 @@ export function useCashFlow() {
           monto_final_anterior: montoFinalAnterior,
           cerrado: false,
           hora_apertura: horaApertura,
+          user_id: user?.id,
         })
         .select()
         .single();
@@ -225,7 +228,7 @@ export function useCashFlow() {
   );
 
   const updateShift = useCallback(
-    async (shiftId: string, data: { turno?: string; responsable?: string; monto_inicial?: number }) => {
+    async (shiftId: string, data: { turno?: string; responsable?: string; monto_inicial?: number; hora_apertura?: string; hora_cierre?: string | null }) => {
       const { error } = await supabase
         .from("shifts")
         .update(data)
