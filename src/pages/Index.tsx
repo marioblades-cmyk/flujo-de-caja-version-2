@@ -5,10 +5,10 @@ import OpenCashForm from "@/components/OpenCashForm";
 import ActiveShiftView from "@/components/ActiveShiftView";
 import ShiftHistory from "@/components/ShiftHistory";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Loader2, History, LogOut } from "lucide-react";
+import { BookOpen, Loader2, History, LogOut, Shield } from "lucide-react";
 
 const Index = () => {
-  const { profile, signOut } = useAuth();
+  const { profile, isAdmin, signOut } = useAuth();
   const {
     currentShift,
     shifts,
@@ -46,6 +46,13 @@ const Index = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            {isAdmin && (
+              <Button variant="outline" asChild className="gap-2">
+                <Link to="/admin">
+                  <Shield className="w-4 h-4" /> Admin
+                </Link>
+              </Button>
+            )}
             <Button variant="outline" asChild className="gap-2">
               <Link to="/historial">
                 <History className="w-4 h-4" /> Historial

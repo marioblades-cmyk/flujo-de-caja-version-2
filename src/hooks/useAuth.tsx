@@ -6,6 +6,7 @@ interface AuthContext {
   user: User | null;
   session: Session | null;
   profile: { id: string; nombre: string } | null;
+  isAdmin: boolean;
   loading: boolean;
   signUp: (email: string, password: string, nombre: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -20,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<{ id: string; nombre: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadProfile = useCallback(async (userId: string) => {
@@ -29,6 +31,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq("user_id", userId)
       .single();
     setProfile(data);
+
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    setIsAdmin(!!roleData);
   }, []);
 
   useEffect(() => {
@@ -40,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await loadProfile(session.user.id);
         } else {
           setProfile(null);
+          setIsAdmin(false);
         }
         setLoading(false);
       }
@@ -91,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthCtx.Provider value={{ user, session, profile, loading, signUp, signIn, signOut, resetPassword, updatePassword }}>
+    <AuthCtx.Provider value={{ user, session, profile, isAdmin, loading, signUp, signIn, signOut, resetPassword, updatePassword }}>
       {children}
     </AuthCtx.Provider>
   );
