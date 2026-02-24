@@ -13,55 +13,46 @@ export function useCashFlow() {
   }, []);
 
   const loadShifts = async () => {
-    try {
-      setLoading(true);
-      // Load closed shifts
-      const { data: shiftRows, error: shiftErr } = await supabase
-        .from("shifts")
+    setLoading(true);
+    // Load closed shifts
+    const { data: shiftRows } = await supabase
+      .from("shifts")
+      .select("*")
+      .eq("cerrado", true)
+      .order("created_at", { ascending: true });
+
+    // Load open shift (if any)
+    const { data: openRows } = await supabase
+      .from("shifts")
+      .select("*")
+      .eq("cerrado", false)
+      .limit(1);
+
+    const closedShifts: Shift[] = [];
+    for (const row of shiftRows || []) {
+      const { data: txRows } = await supabase
+        .from("transactions")
         .select("*")
-        .eq("cerrado", true)
+        .eq("shift_id", row.id)
         .order("created_at", { ascending: true });
 
-      if (shiftErr) console.error("Error loading shifts:", shiftErr);
-
-      // Load open shift (if any)
-      const { data: openRows, error: openErr } = await supabase
-        .from("shifts")
-        .select("*")
-        .eq("cerrado", false)
-        .limit(1);
-
-      if (openErr) console.error("Error loading open shift:", openErr);
-
-      const closedShifts: Shift[] = [];
-      for (const row of shiftRows || []) {
-        const { data: txRows } = await supabase
-          .from("transactions")
-          .select("*")
-          .eq("shift_id", row.id)
-          .order("created_at", { ascending: true });
-
-        closedShifts.push(rowToShift(row, txRows || []));
-      }
-      setShifts(closedShifts);
-
-      if (openRows && openRows.length > 0) {
-        const row = openRows[0];
-        const { data: txRows } = await supabase
-          .from("transactions")
-          .select("*")
-          .eq("shift_id", row.id)
-          .order("created_at", { ascending: true });
-
-        setCurrentShift(rowToShift(row, txRows || []));
-      } else {
-        setCurrentShift(null);
-      }
-    } catch (err) {
-      console.error("Unexpected error in loadShifts:", err);
-    } finally {
-      setLoading(false);
+      closedShifts.push(rowToShift(row, txRows || []));
     }
+    setShifts(closedShifts);
+
+    if (openRows && openRows.length > 0) {
+      const row = openRows[0];
+      const { data: txRows } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("shift_id", row.id)
+        .order("created_at", { ascending: true });
+
+      setCurrentShift(rowToShift(row, txRows || []));
+    } else {
+      setCurrentShift(null);
+    }
+    setLoading(false);
   };
 
   const rowToShift = (row: any, txRows: any[]): Shift => ({
